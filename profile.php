@@ -1,37 +1,23 @@
 <?php
-require_once 'config/db.php';
-require_once 'includes/header.php';
-requireLogin();
+require 'config/db.php';
+require 'includes/auth_check.php';
 
-$stmt = $pdo->prepare("SELECT b.*, c.name AS category_name FROM books b JOIN categories c ON b.category_id = c.id WHERE b.created_by = ? ORDER BY b.created_at DESC");
+$stmt = $pdo->prepare("SELECT username, email, role, created_at FROM users WHERE id = ?");
 $stmt->execute([$_SESSION['user_id']]);
-$myBooks = $stmt->fetchAll();
+$user = $stmt->fetch();
+
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM tasks WHERE user_id = ?");
+$countStmt->execute([$_SESSION['user_id']]);
+$taskCount = $countStmt->fetchColumn();
+
+include 'includes/header.php';
 ?>
-<section class="profile-box">
-    <h2>Жеке профиль</h2>
-    <p><strong>Аты-жөні:</strong> <?= e($_SESSION['user_name']) ?></p>
-    <p><strong>Email:</strong> <?= e($_SESSION['user_email']) ?></p>
-    <p><strong>Рөлі:</strong> <?= $_SESSION['user_role'] === 'admin' ? 'Әкімші (Admin)' : 'Оқырман (User)' ?></p>
-</section>
-<section>
-    <h3>Мен қосқан кітаптар (<?= count($myBooks) ?>)</h3>
-    <?php if (empty($myBooks)): ?>
-        <p>Сіз әлі кітап қосқан жоқсыз. <a href="book_form.php">Алғашқы кітапты қосу</a></p>
-    <?php else: ?>
-        <table class="data-table">
-            <thead><tr><th>Атауы</th><th>Авторы</th><th>Санаты</th><th>Жылы</th><th>Әрекеттер</th></tr></thead>
-            <tbody>
-                <?php foreach ($myBooks as $b): ?>
-                    <tr>
-                        <td><a href="book_detail.php?id=<?= $b['id'] ?>"><?= e($b['title']) ?></a></td>
-                        <td><?= e($b['author']) ?></td>
-                        <td><?= e($b['category_name']) ?></td>
-                        <td><?= (int)$b['publish_year'] ?></td>
-                        <td><a href="book_form.php?id=<?= $b['id'] ?>">Өңдеу</a> | <a href="delete_book.php?id=<?= $b['id'] ?>" onclick="return confirm('Өшіруге сенімдісіз бе?');">Жою</a></td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    <?php endif; ?>
-</section>
-<?php require_once 'includes/footer.php'; ?>
+<h2>Пайдаланушы профилі</h2>
+<div class="card">
+    <p><b>Аты-жөні (Логин):</b> <?= htmlspecialchars($user['username']) ?></p>
+    <p><b>Email:</b> <?= htmlspecialchars($user['email']) ?></p>
+    <p><b>Рөлі:</b> <?= htmlspecialchars($user['role']) ?></p>
+    <p><b>Тіркелген уақыты:</b> <?= htmlspecialchars($user['created_at']) ?></p>
+    <p><b>Барлық тапсырмалар саны:</b> <?= $taskCount ?></p>
+</div>
+<?php include 'includes/footer.php'; ?>
